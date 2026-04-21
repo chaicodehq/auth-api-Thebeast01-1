@@ -16,12 +16,42 @@ import bcrypt from 'bcryptjs';
  * - Enable timestamps (createdAt, updatedAt)
  */
 const userSchema = new mongoose.Schema(
-  {
-    // Your schema fields here
-  },
-  {
-    // Schema options here
-  }
+    {
+        name: {
+            type: String,
+            required: true,
+            trim: true,
+            minlength: 2,
+            maxlength: 50
+        },
+        email: {
+            type: String,
+            required: [true, 'Email is required'],
+            unique: true,
+            lowercase: true,
+            trim: true,
+            validate: {
+                validator: (v) => /^([\w-\.]+@([\w-]+\.)+[\w-]{2,4})?$/.test(v),
+                message: error => `${error.value} is not a valid email`
+            }
+        },
+        password: {
+            type: String,
+            required: [true, "Password is required"],
+            minlength: 6,
+            select: false
+        },
+        role: {
+            type: String,
+            enum: ['user', 'admin'],
+            default: 'user'
+        }
+
+
+    },
+    {
+        timestamps: true
+    }
 );
 
 /**
@@ -33,12 +63,12 @@ const userSchema = new mongoose.Schema(
  * 3. Replace plain text password with hashed version
  *
  * Example structure:
- * userSchema.pre('save', async function(next) {
- *   // Only hash if password is modified
- *   
- *   // Hash password and replace
- *   
- * });
  */
+userSchema.pre('save', async function(next) {
+    if (!this.isModified('password')) {
+        return
+    }
+    this.password = await bcrypt.hash(this.password, 12)
 
-// TODO: Create and export the User model
+});
+export const User = mongoose.model("User", userSchema)
